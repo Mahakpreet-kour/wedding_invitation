@@ -7,38 +7,52 @@ function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    audioRef.current = new Audio();
-    
-    // Wedding song - "Aaj Sajeya" / "Sajaya H Aaj Din Khushiya Da"
-    // Option 1: Local file in public folder (rename your file to wedding-song.mp3)
-    audioRef.current.src = '/wedding-song.mp3';
-    
-    // Option 2: Online URL - Uncomment and add your song URL here:
-    // audioRef.current.src = 'https://your-song-url.com/aaj-sajeya.mp3';
-    
-    audioRef.current.loop = true;
-    audioRef.current.volume = 0.6;
-    audioRef.current.preload = 'auto';
-
-    // Handle audio loading errors
+    // Define handlers outside try block so they're accessible in cleanup
     const handleError = () => {
-      console.log('Audio file not found. Please add wedding-song.mp3 to public folder or use online URL.');
       setHasError(true);
     };
 
-    // Handle when audio can play
+    const handleLoadedMetadata = () => {
+      if (audioRef.current) {
+        // Set start time to 5 seconds (skip intro)
+        audioRef.current.currentTime = 5;
+      }
+    };
+
     const handleCanPlay = () => {
       setHasError(false);
     };
 
-    audioRef.current.addEventListener('error', handleError);
-    audioRef.current.addEventListener('canplay', handleCanPlay);
+    const handlePlay = () => {
+      if (audioRef.current && audioRef.current.currentTime < 5) {
+        audioRef.current.currentTime = 5;
+      }
+    };
+
+    try {
+      audioRef.current = new Audio('/wedding-song.mp3');
+      
+      // Wedding song - "Aaj Sajeya" / "Sajaya H Aaj Din Khushiya Da"
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.6;
+      audioRef.current.preload = 'auto';
+
+      audioRef.current.addEventListener('error', handleError);
+      audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
+      audioRef.current.addEventListener('canplay', handleCanPlay);
+      audioRef.current.addEventListener('play', handlePlay);
+    } catch (err) {
+      console.error('Failed to initialize audio:', err);
+      setHasError(true);
+    }
 
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.removeEventListener('error', handleError);
+        audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
         audioRef.current.removeEventListener('canplay', handleCanPlay);
+        audioRef.current.removeEventListener('play', handlePlay);
         audioRef.current = null;
       }
     };
@@ -51,21 +65,42 @@ function MusicPlayer() {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
+      // Check if file exists first
+      if (hasError) {
+        alert(`Music file not found!\n\nPlease add your song file:\n1. Download "Aaj Sajeya" song (MP3 format)\n2. Save it as "wedding-song.mp3"\n3. Place it in: project/public/wedding-song.mp3\n4. Refresh the page\n\nOr use an online URL by updating MusicPlayer.tsx`);
+        return;
+      }
+
+      // Ensure audio is loaded and set to start position
+      if (audioRef.current.readyState >= 2) {
+        // Audio is loaded enough to play
+        audioRef.current.currentTime = 5; // Start from 5 seconds
+      }
+
       // Try to play the audio
       const playPromise = audioRef.current.play();
       
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
+            console.log('Audio playing successfully');
+            // Ensure song starts from 5 seconds (skip intro)
+            if (audioRef.current) {
+              audioRef.current.currentTime = 5;
+            }
             setIsPlaying(true);
             setHasError(false);
           })
           .catch((error) => {
-            console.log('Audio playback failed:', error);
+            console.error('Audio playback failed:', error);
             setHasError(true);
             setIsPlaying(false);
-            alert('Music file not found. Please add wedding-song.mp3 to the public folder.');
+            alert(`Music playback failed!\n\nError: ${error.message}\n\nPlease check:\n1. File exists at: project/public/wedding-song.mp3\n2. File format is MP3\n3. Browser allows audio playback\n4. Try refreshing the page`);
           });
+      } else {
+        // Fallback if play() doesn't return a promise
+        setIsPlaying(true);
+        setHasError(false);
       }
     }
   };
