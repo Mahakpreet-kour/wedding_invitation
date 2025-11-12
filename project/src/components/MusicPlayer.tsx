@@ -9,33 +9,36 @@ function MusicPlayer() {
   useEffect(() => {
     audioRef.current = new Audio();
     
-    // Try to load the wedding song - "Sajaya H Aaj Din Khushiya Da"
+    // Wedding song - "Aaj Sajeya" / "Sajaya H Aaj Din Khushiya Da"
     // Option 1: Local file in public folder (rename your file to wedding-song.mp3)
     audioRef.current.src = '/wedding-song.mp3';
     
-    // Option 2: If you have an online URL, uncomment and use this:
-    // audioRef.current.src = 'https://your-song-url.com/song.mp3';
+    // Option 2: Online URL - Uncomment and add your song URL here:
+    // audioRef.current.src = 'https://your-song-url.com/aaj-sajeya.mp3';
     
     audioRef.current.loop = true;
-    audioRef.current.volume = 0.5;
+    audioRef.current.volume = 0.6;
     audioRef.current.preload = 'auto';
 
     // Handle audio loading errors
-    audioRef.current.addEventListener('error', (e) => {
+    const handleError = () => {
       console.log('Audio file not found. Please add wedding-song.mp3 to public folder or use online URL.');
       setHasError(true);
-    });
+    };
 
     // Handle when audio can play
-    audioRef.current.addEventListener('canplay', () => {
+    const handleCanPlay = () => {
       setHasError(false);
-    });
+    };
+
+    audioRef.current.addEventListener('error', handleError);
+    audioRef.current.addEventListener('canplay', handleCanPlay);
 
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.removeEventListener('error', () => {});
-        audioRef.current.removeEventListener('canplay', () => {});
+        audioRef.current.removeEventListener('error', handleError);
+        audioRef.current.removeEventListener('canplay', handleCanPlay);
         audioRef.current = null;
       }
     };
